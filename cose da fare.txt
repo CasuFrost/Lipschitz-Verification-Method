@@ -1,0 +1,4 @@
+Plot di 3 curve diverse per le 3 loss
+Salvare modello con loss minima
+Provare differenti combinazioni con pochi strati e più neuroni
+Automatizzare il tutto
