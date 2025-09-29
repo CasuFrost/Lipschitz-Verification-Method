@@ -23,7 +23,7 @@ if __name__ == "__main__":
     #neuron_per_layer = 1
     epsilon = 0.1   
     variables=generate_var_list(n)
-    num_epochs = 400
+    num_epochs = 2000
     samples = get_samples(epsilon=epsilon,n=n)
 
     #normalized_samples,avg_features,stdev_features = normalize_sample_set(samples)
@@ -41,8 +41,8 @@ if __name__ == "__main__":
     system = System(1,Z_gate(),Z0,ZU,'z_gate_newLoss')
 
 
-    for num_layer in [1,2,3,4]:
-        for neuron_per_layer in [2,3,5,10]:
+    for num_layer in [2]:
+        for neuron_per_layer in [5]:
             model = FullyConnectedNet(n,num_layer,neuron_per_layer)
             data_file,packed_losses=train(system,num_layer,neuron_per_layer,n,epsilon, samples, verbose, optim, model,num_epochs,gamma,eta , loss_function=custom_loss)
             plot_losses(data_file,neuron_per_layer,num_layer,packed_losses)

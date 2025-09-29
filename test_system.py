@@ -44,7 +44,7 @@ model = FullyConnectedNet(n,num_layer,neuron_per_layer)
 checkpoint = torch.load(model_name, weights_only=True) 
 model.load_state_dict(checkpoint['model_state_dict']) 
 
-max_b = -10000
+max_b = -float('inf')
 for p in Z0_samples:
     pred=model(torch.tensor(p)).item()
     max_b = max(max_b,pred)
@@ -52,7 +52,7 @@ for p in Z0_samples:
         print("ERROR Z0")
         print(pred)
 
-min_b=100000
+min_b=float('inf')
 for p in ZU_samples:
     pred=model(torch.tensor(p)).item()
     min_b=min(pred,min_b)
@@ -60,14 +60,15 @@ for p in ZU_samples:
         print("ERROR ZU")
         print(pred)
 eta=min(-max_b,min_b)
-gamma=eta
-print(eta)
+gamma=0.02443191409111022
+#print(eta)
 
 #exit()
 for z in Z0_samples+other_samples:
-    pred=model(torch.tensor(p)).item()
+    pred=model(torch.tensor(z)).item()
+    #print(pred)
     if pred<=gamma:
-        f_z= complex_to_real(system.step(real_to_complex(z)))
+        f_z = complex_to_real(system.step(real_to_complex(z)))
         B_f_z = model(torch.tensor(f_z).float().unsqueeze(0))
-        if B_f_z>eta:
-            print('dyn error',B_f_z)
+        if B_f_z>-eta:
+            print('dyn error',pred,B_f_z)
