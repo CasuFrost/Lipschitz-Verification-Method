@@ -1,5 +1,5 @@
 from grid import get_samples
-from model import FullyConnectedNet,custom_loss,normalize_sample_set, custom_loss_optimized
+from model import FullyConnectedNet,custom_loss,normalize_sample_set
 from labeling import label_sample_type
 from lib.gate import *
 from others.semi_algebraic_set import SemiAlgebraicSet
@@ -40,7 +40,8 @@ if __name__ == "__main__":
 
     system = System(1,Z_gate(),Z0,ZU,'z_gate_newLoss')
 
-
+    #Provare più volte per ogni scelta della struttura della NN
+    
     for num_layer in [2]:
         for neuron_per_layer in [5]:
             model = FullyConnectedNet(n,num_layer,neuron_per_layer)

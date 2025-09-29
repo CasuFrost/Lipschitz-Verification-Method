@@ -80,57 +80,6 @@ def custom_loss(model : FullyConnectedNet, Z0_samples,ZU_samples,other_samples, 
         total_loss = torch.tensor(0.0, dtype=torch.float32) 
     return total_loss,np.sum([i.item() for i in Z0_losses]),np.sum([i.item() for i in ZU_losses]),np.sum([i.item() for i in Dynamic_losses])
 
-def custom_loss_optimized(model: torch.nn.Module, Z0_samples, ZU_samples, other_samples, gamma: float, eta: float, dynamic):
-    
-    Z0_batch = torch.tensor(Z0_samples, dtype=torch.float32)
-    ZU_batch = torch.tensor(ZU_samples, dtype=torch.float32)
-    Other_batch = torch.tensor(other_samples, dtype=torch.float32)
-
-
-    Z0_predictions = model(Z0_batch)
-    
-    Z0_targets = torch.full_like(Z0_predictions, -eta)
-    Z0_losses_all = F.mse_loss(Z0_predictions, Z0_targets, reduction='none')
-
-    f_z0_batch = complex_to_real(dynamic(real_to_complex(Z0_batch)))
-    B_f_z0_predictions = model(f_z0_batch)
-    B_f_z0_targets = torch.full_like(B_f_z0_predictions, -eta)
-    Dynamic_losses_Z0_all = F.mse_loss(B_f_z0_predictions, B_f_z0_targets, reduction='none')
-
-    mask_Z0 = (Z0_predictions <= gamma).float()
-    Dynamic_losses_Z0_weighted = Dynamic_losses_Z0_all * mask_Z0
-
-    ZU_predictions = model(ZU_batch)
-    ZU_targets = torch.full_like(ZU_predictions, eta)
-    ZU_losses_all = F.mse_loss(ZU_predictions, ZU_targets, reduction='none')
-
-    Other_predictions = model(Other_batch)
-
-    f_z_batch = complex_to_real(dynamic(real_to_complex(Other_batch)))
-    B_f_z_predictions = model(f_z_batch)
-    B_f_z_targets = torch.full_like(B_f_z_predictions, -eta)
-    Dynamic_losses_Other_all = F.mse_loss(B_f_z_predictions, B_f_z_targets, reduction='none')
-
-    mask_Other = (Other_predictions <= gamma).float()
-    Dynamic_losses_Other_weighted = Dynamic_losses_Other_all * mask_Other
-
-    Z0_losses_sum = Z0_losses_all.sum()
-    ZU_losses_sum = ZU_losses_all.sum()
-    
-    
-    Dynamic_losses_sum = Dynamic_losses_Z0_weighted.sum() + Dynamic_losses_Other_weighted.sum()
-    
-
-    total_loss = Z0_losses_sum + ZU_losses_sum + Dynamic_losses_sum
-    
-    
-    return (
-        total_loss, 
-        Z0_losses_sum.item(), 
-        ZU_losses_sum.item(), 
-        Dynamic_losses_sum.item()
-    )
-
 def normalize_sample_set(samples):
     n = len(samples[0])
     avg_features = [0 for _ in range(n)]
