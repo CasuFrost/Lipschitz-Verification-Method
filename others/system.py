@@ -6,6 +6,7 @@ A system is defined by:
     a semi algebraic set defining the initial region
     a semi algebraic set defining the unsafe region
 '''
+import torch
 from lib.gate import *
 from others.semi_algebraic_set import SemiAlgebraicSet
 class System:
@@ -23,8 +24,15 @@ class System:
         self.name=name
 
     def step(self,z):
-        if self.qubit_num>1:
-            dynamic = tensor_gate(self.gate,self.qubit_num)
-            return list(np.dot(dynamic,z))
-        return list(np.dot(self.gate,z))
-        
+        if type(z)!=torch.Tensor:
+            if self.qubit_num>1:
+                dynamic = tensor_gate(self.gate,self.qubit_num)
+                return list(np.dot(dynamic,z))
+            return list(np.dot(self.gate,z))
+        if self.qubit_num > 1:
+            evolution_matrix = tensor_gate(self.gate, self.qubit_num) 
+        else:
+            evolution_matrix = self.gate
+        evolution_matrix = torch.as_tensor(self.gate, dtype=torch.complex64)
+        evolution_matrix = evolution_matrix.to(z.device)
+        return z @ evolution_matrix.transpose(-2, -1) 

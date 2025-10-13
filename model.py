@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from lib.utilities import MSE,real_to_complex,complex_to_real
+from lib.utilities import MSE,real_to_complex,complex_to_real,real_to_complex_vectorized,complex_to_real_vectorized
 
 class FullyConnectedNet(nn.Module):
     def __init__(self, input_size: int, num_layer: int, neuron_per_layer: int):
@@ -36,6 +36,55 @@ class FullyConnectedNet(nn.Module):
             x = F.relu(layer(x))
         x = self.output_layer(x)
         return x
+    
+def custom_loss_vectorized(model : FullyConnectedNet, Z0_samples,ZU_samples,other_samples, gamma ,eta, dynamic):
+    #add a loss for each value of the matrices that exceeds 1
+    Z0 = torch.as_tensor(Z0_samples, dtype=torch.float32)
+    ZU = torch.as_tensor(ZU_samples, dtype=torch.float32)
+    Other = torch.as_tensor(other_samples, dtype=torch.float32)
+    
+    device = next(model.parameters()).device
+    Z0 = Z0.to(device)
+    ZU = ZU.to(device)
+    Other = Other.to(device)
+
+    '''Z0 losses'''
+    predictions_Z0 = model(Z0)
+    target_Z0 = torch.full_like(predictions_Z0, -eta)
+    Z0_losses_individual = MSE(predictions_Z0, target_Z0).squeeze()
+
+    '''ZU losses'''
+    predictions_ZU = model(ZU)
+    target_ZU = torch.full_like(predictions_ZU, eta)
+    ZU_losses_individual = MSE(predictions_ZU, target_ZU).squeeze()
+
+    '''Dynamic losses'''
+    All_samples = torch.cat([Z0, Other], dim=0)
+    predictions_Other = model(Other) 
+    predictions_All = torch.cat([predictions_Z0, predictions_Other], dim=0)
+    
+    f_All = complex_to_real_vectorized(dynamic(real_to_complex_vectorized(All_samples)))
+    
+    B_f_All = model(f_All)
+    target_Dynamic = torch.full_like(B_f_All, -eta)
+    
+    All_Dynamic_losses_individual = MSE(B_f_All, target_Dynamic).squeeze()
+    
+    mask = (predictions_All <= gamma).squeeze()
+    Dynamic_losses_masked = All_Dynamic_losses_individual[mask]
+    
+    sum_Z0_loss = torch.sum(Z0_losses_individual)
+    sum_ZU_loss = torch.sum(ZU_losses_individual)
+    sum_Dynamic_loss = torch.sum(Dynamic_losses_masked)
+
+    total_loss = sum_Z0_loss + sum_ZU_loss + sum_Dynamic_loss
+    
+    return (
+        total_loss, 
+        sum_Z0_loss.item() if sum_Z0_loss.numel() > 0 else 0.0,
+        sum_ZU_loss.item() if sum_ZU_loss.numel() > 0 else 0.0,
+        sum_Dynamic_loss.item() if sum_Dynamic_loss.numel() > 0 else 0.0
+    )
 
 def custom_loss(model : FullyConnectedNet, Z0_samples,ZU_samples,other_samples, gamma ,eta, dynamic):
     '''
